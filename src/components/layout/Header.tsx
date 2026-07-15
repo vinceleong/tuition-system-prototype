@@ -1,8 +1,8 @@
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/avatar';
-import { Bell, Menu, X } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+
 
 export function Header() {
   const { currentUser, currentRole } = useApp();
@@ -45,10 +45,10 @@ export function Header() {
             </div>
           )}
         </div>
-        <Link to={`/${currentRole}/profile`} className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1">
+        <div className="flex items-center gap-2 rounded-lg px-2 py-1">
           <Avatar name={currentUser?.name || 'User'} size="sm" />
           <span className="text-sm font-medium text-gray-700 hidden sm:inline">{currentUser?.name}</span>
-        </Link>
+        </div>
       </div>
     </header>
   );
