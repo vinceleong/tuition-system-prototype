@@ -66,7 +66,7 @@ export function AdminPayments() {
                     <td className="px-4 py-3 text-sm text-gray-700">{fromUser?.name || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{toUser?.name || '-'}</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatCurrency(p.amount)}</td>
-                    <td className="px-4 py-3"><Badge variant={p.type === 'session_payment' ? 'info' : p.type === 'wallet_topup' ? 'success' : p.type === 'refund' ? 'warning' : 'default'}>{p.type.replace('_', ' ')}</Badge></td>
+                    <td className="px-4 py-3"><Badge variant={p.type === 'session_payment' ? 'info' : p.type === 'bill_payment' ? 'success' : p.type === 'refund' ? 'warning' : 'default'}>{p.type.replace(/_/g, ' ')}</Badge></td>
                     <td className="px-4 py-3"><Badge variant={p.status === 'completed' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{p.status}</Badge></td>
                     <td className="px-4 py-3 text-sm text-gray-500">{formatDate(p.date)}</td>
                   </tr>

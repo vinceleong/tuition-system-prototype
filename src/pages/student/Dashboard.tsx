@@ -13,7 +13,7 @@ import {
 
 export function StudentDashboard() {
   const navigate = useNavigate();
-  const { currentUser, getSessions, getAssignments, getWalletBalance } = useApp();
+  const { currentUser, getSessions, getAssignments, getOutstandingBalance } = useApp();
 
   const sessions = getSessions();
   const assignments = getAssignments();
@@ -23,7 +23,7 @@ export function StudentDashboard() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const completedSessions = sessions.filter((s) => s.status === 'completed');
 
-  const walletBalance = getWalletBalance();
+  const outstandingBalance = getOutstandingBalance();
 
   const gradedAssignments = assignments.filter((a) => a.status === 'graded');
   const gradeMap: Record<string, number> = { 'A+': 4.3, 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7, 'C+': 2.3, 'C': 2.0, 'C-': 1.7, 'D+': 1.3, 'D': 1.0, 'F': 0 };
@@ -58,10 +58,10 @@ export function StudentDashboard() {
           subtext="Total sessions completed"
         />
         <StatCard
-          label="Wallet Balance"
-          value={formatCurrency(walletBalance)}
+          label="Outstanding Balance"
+          value={formatCurrency(outstandingBalance)}
           icon={<CreditCard size={20} />}
-          subtext={walletBalance > 0 ? 'Available to book sessions' : 'Top up to book sessions'}
+          subtext={outstandingBalance > 0 ? 'Pay your bill to continue' : 'All bills paid — no balance due'}
         />
         <StatCard
           label="Average Grade"

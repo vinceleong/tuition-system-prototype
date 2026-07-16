@@ -8,22 +8,31 @@ import { Input } from '../../components/ui/input';
 import { Dialog } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/shared/shared';
 import {
-  CreditCard, Plus, ArrowUpRight, ArrowDownRight,
-  Wallet, History,
+  CreditCard, ArrowUpRight, ArrowDownRight,
+  FileText, History, CheckCircle, AlertCircle,
 } from 'lucide-react';
 
 export function StudentPayments() {
-  const { getPayments, getWalletBalance, currentUserId, addPayment } = useApp();
+  const { getPayments, getOutstandingBalance, getMonthlyBills, currentUserId, addPayment } = useApp();
 
   const payments = getPayments();
-  const balance = getWalletBalance();
+  const outstandingBalance = getOutstandingBalance();
+  const monthlyBills = getMonthlyBills();
 
-  const [showTopUp, setShowTopUp] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState('');
-  const [topUpSuccess, setTopUpSuccess] = useState(false);
+  const [showPayDialog, setShowPayDialog] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<{ label: string; year: number; month: number; balance: number } | null>(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [paySuccess, setPaySuccess] = useState(false);
 
-  const handleTopUp = () => {
-    const amount = parseFloat(topUpAmount);
+  const openPayDialog = (bill: { year: number; month: number; label: string; balance: number }) => {
+    setSelectedBill(bill);
+    setPayAmount(bill.balance.toString());
+    setShowPayDialog(true);
+  };
+
+  const handlePayBill = () => {
+    if (!selectedBill) return;
+    const amount = parseFloat(payAmount);
     if (isNaN(amount) || amount <= 0) return;
 
     const newPayment = {
@@ -31,39 +40,27 @@ export function StudentPayments() {
       userId: currentUserId,
       tutorId: '',
       amount,
-      type: 'wallet_topup' as const,
+      type: 'bill_payment' as const,
       status: 'completed' as const,
       date: new Date().toISOString().split('T')[0],
-      description: 'Wallet top-up',
+      description: `${selectedBill.label} bill payment`,
     };
     addPayment(newPayment);
-    setShowTopUp(false);
-    setTopUpAmount('');
-    setTopUpSuccess(true);
-    setTimeout(() => setTopUpSuccess(false), 3000);
+    setShowPayDialog(false);
+    setSelectedBill(null);
+    setPayAmount('');
+    setPaySuccess(true);
+    setTimeout(() => setPaySuccess(false), 3000);
   };
 
   const sortedPayments = [...payments].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  const now = new Date();
-  const thisMonthSpent = payments
-    .filter((p) => {
-      const payDate = new Date(p.date);
-      return (
-        p.type === 'session_payment' &&
-        p.status === 'completed' &&
-        payDate.getMonth() === now.getMonth() &&
-        payDate.getFullYear() === now.getFullYear()
-      );
-    })
-    .reduce((sum, p) => sum + p.amount, 0);
-
   const typeBadgeVariant = (type: string) => {
     switch (type) {
       case 'session_payment': return 'info' as const;
-      case 'wallet_topup': return 'success' as const;
+      case 'bill_payment': return 'success' as const;
       case 'refund': return 'warning' as const;
       case 'payout': return 'default' as const;
       default: return 'default' as const;
@@ -82,41 +79,105 @@ export function StudentPayments() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-        <p className="text-gray-500 mt-1">Manage your wallet and view transactions.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Payments &amp; Billing</h1>
+        <p className="text-gray-500 mt-1">View your monthly bills and pay directly.</p>
       </div>
 
-      {/* Top-up success */}
-      {topUpSuccess && (
+      {/* Payment success */}
+      {paySuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800 text-sm">
-          Wallet topped up successfully!
+          Bill paid successfully!
         </div>
       )}
 
-      {/* Wallet Balance Card */}
+      {/* Outstanding Balance Card */}
       <Card className="bg-gradient-to-br from-primary-600 to-primary-800 text-white border-0">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Wallet size={20} />
-                <p className="text-sm text-primary-100">Wallet Balance</p>
+                <FileText size={20} />
+                <p className="text-sm text-primary-100">Outstanding Balance</p>
               </div>
-              <p className="text-4xl font-bold">{formatCurrency(balance)}</p>
+              <p className="text-4xl font-bold">{formatCurrency(outstandingBalance)}</p>
               <p className="text-sm text-primary-200 mt-2">
-                Spent this month: {formatCurrency(thisMonthSpent)}
+                {outstandingBalance > 0
+                  ? 'You have unpaid session charges. Pay your bill below.'
+                  : 'All bills are paid. No outstanding balance.'}
               </p>
             </div>
-            <Button
-              variant="secondary"
-              size="lg"
-              className="bg-white text-primary-700 hover:bg-primary-50"
-              onClick={() => setShowTopUp(true)}
-            >
-              <Plus size={18} className="mr-2" />
-              Top Up
-            </Button>
+            {outstandingBalance > 0 && (
+              <Button
+                variant="secondary"
+                size="lg"
+                className="bg-white text-primary-700 hover:bg-primary-50"
+                onClick={() => {
+                  const unpaid = monthlyBills.find(b => b.balance > 0);
+                  if (unpaid) openPayDialog(unpaid);
+                }}
+              >
+                <CreditCard size={18} className="mr-2" />
+                Pay Now
+              </Button>
+            )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Bills */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <FileText size={18} className="text-primary-600" />
+            <h2 className="font-semibold text-gray-900">Monthly Bills</h2>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {monthlyBills.length === 0 ? (
+            <EmptyState
+              icon="📄"
+              title="No bills yet"
+              description="Your monthly bills will appear here once you have session charges."
+            />
+          ) : (
+            <div className="space-y-3">
+              {monthlyBills.map((bill) => (
+                <div
+                  key={`${bill.year}-${bill.month}`}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-primary-200 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      bill.balance > 0 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
+                    }`}>
+                      {bill.balance > 0 ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{bill.label} {bill.year}</p>
+                      <p className="text-sm text-gray-500">
+                        Charges: {formatCurrency(bill.charges)} · Paid: {formatCurrency(bill.paid)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className={`font-semibold ${bill.balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                        {bill.balance > 0 ? `${formatCurrency(bill.balance)} due` : 'Paid'}
+                      </p>
+                    </div>
+                    {bill.balance > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={() => openPayDialog(bill)}
+                      >
+                        Pay Bill
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -149,6 +210,7 @@ export function StudentPayments() {
                 </thead>
                 <tbody>
                   {sortedPayments.map((payment) => {
+                    const isCredit = payment.type === 'bill_payment' || payment.type === 'refund';
                     const isDebit = payment.type === 'session_payment';
                     return (
                       <tr key={payment.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
@@ -160,19 +222,19 @@ export function StudentPayments() {
                         </td>
                         <td className="py-3 px-2 text-sm">
                           <span className={`flex items-center gap-1 font-medium ${
-                            isDebit ? 'text-red-600' : 'text-green-600'
+                            isCredit ? 'text-green-600' : isDebit ? 'text-red-600' : 'text-gray-600'
                           }`}>
                             {isDebit ? (
                               <ArrowDownRight size={14} />
-                            ) : (
+                            ) : isCredit ? (
                               <ArrowUpRight size={14} />
-                            )}
-                            {isDebit ? '-' : '+'}{formatCurrency(payment.amount)}
+                            ) : null}
+                            {isDebit ? '-' : isCredit ? '+' : ''}{formatCurrency(payment.amount)}
                           </span>
                         </td>
                         <td className="py-3 px-2">
                           <Badge variant={typeBadgeVariant(payment.type)}>
-                            {payment.type.replace('_', ' ')}
+                            {payment.type.replace(/_/g, ' ')}
                           </Badge>
                         </td>
                         <td className="py-3 px-2">
@@ -190,28 +252,37 @@ export function StudentPayments() {
         </CardContent>
       </Card>
 
-      {/* Top Up Dialog */}
-      <Dialog open={showTopUp} onClose={() => setShowTopUp(false)} title="Top Up Wallet">
+      {/* Pay Bill Dialog */}
+      <Dialog open={showPayDialog} onClose={() => setShowPayDialog(false)} title="Pay Bill">
         <div className="space-y-4">
+          {selectedBill && (
+            <div className="bg-gray-50 rounded-lg p-3 text-sm">
+              <p className="text-gray-500">Paying bill for:</p>
+              <p className="text-lg font-bold text-primary-700">
+                {selectedBill.label} {selectedBill.year}
+              </p>
+              <p className="text-gray-500 mt-1">Amount due: {formatCurrency(selectedBill.balance)}</p>
+            </div>
+          )}
           <Input
             label="Amount (USD)"
             type="number"
             placeholder="Enter amount..."
-            value={topUpAmount}
-            onChange={(e) => setTopUpAmount(e.target.value)}
+            value={payAmount}
+            onChange={(e) => setPayAmount(e.target.value)}
             min="1"
           />
-          {topUpAmount && parseFloat(topUpAmount) > 0 && (
+          {payAmount && parseFloat(payAmount) > 0 && (
             <div className="bg-gray-50 rounded-lg p-3 text-sm">
-              <p className="text-gray-500">You are adding:</p>
-              <p className="text-2xl font-bold text-primary-700">{formatCurrency(parseFloat(topUpAmount))}</p>
+              <p className="text-gray-500">You are paying:</p>
+              <p className="text-2xl font-bold text-primary-700">{formatCurrency(parseFloat(payAmount))}</p>
             </div>
           )}
           <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setShowTopUp(false)}>Cancel</Button>
-            <Button onClick={handleTopUp} disabled={!topUpAmount || parseFloat(topUpAmount) <= 0}>
+            <Button variant="outline" onClick={() => setShowPayDialog(false)}>Cancel</Button>
+            <Button onClick={handlePayBill} disabled={!payAmount || parseFloat(payAmount) <= 0}>
               <CreditCard size={16} className="mr-2" />
-              Pay {topUpAmount ? formatCurrency(parseFloat(topUpAmount)) : ''}
+              Pay {payAmount ? formatCurrency(parseFloat(payAmount)) : ''}
             </Button>
           </div>
           <p className="text-xs text-gray-400 text-center">

@@ -9,7 +9,8 @@ import {
   getSessionsByUser,
   getPaymentsByUser,
   getTutorEarnings,
-  getWalletBalance,
+  getOutstandingBalance,
+  getMonthlyBills,
   getAssignmentsByUser,
   getReviewsByTutor,
   getReviewsByStudent,
@@ -41,7 +42,8 @@ interface AppState {
   getPayments: () => Payment[];
   getAssignments: () => Assignment[];
   getTutorEarnings: () => Payment[];
-  getWalletBalance: () => number;
+  getOutstandingBalance: () => number;
+  getMonthlyBills: () => ReturnType<typeof getMonthlyBills>;
   getReviewsForTutor: (tutorId: string) => Review[];
   getReviewsForStudent: (studentId: string) => Review[];
   getConversationWith: (otherId: string) => Message[];
@@ -81,7 +83,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getPayments = useCallback(() => getPaymentsByUser(currentUserId), [currentUserId]);
   const getAssignments = useCallback(() => getAssignmentsByUser(currentUserId, currentRole), [currentUserId, currentRole]);
   const getTutorEarningsFn = useCallback(() => getTutorEarnings(currentUserId), [currentUserId]);
-  const getWalletBalanceFn = useCallback(() => getWalletBalance(currentUserId), [currentUserId]);
+  const getOutstandingBalanceFn = useCallback(() => getOutstandingBalance(currentUserId), [currentUserId]);
+  const getMonthlyBillsFn = useCallback(() => getMonthlyBills(currentUserId), [currentUserId]);
   const getReviewsForTutor = useCallback((tutorId: string) => getReviewsByTutor(tutorId), []);
   const getReviewsForStudent = useCallback((studentId: string) => getReviewsByStudent(studentId), []);
   const getConversationWith = useCallback((otherId: string) => getConversationWithUser(currentUserId, otherId), [currentUserId]);
@@ -131,7 +134,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getPayments,
     getAssignments,
     getTutorEarnings: getTutorEarningsFn,
-    getWalletBalance: getWalletBalanceFn,
+    getOutstandingBalance: getOutstandingBalanceFn,
+    getMonthlyBills: getMonthlyBillsFn,
     getReviewsForTutor,
     getReviewsForStudent,
     getConversationWith,
@@ -148,7 +152,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentRole, currentUserId, currentUser,
     sessionState, paymentState, assignmentState, reviewState,
     getSessions, getPayments, getAssignments,
-    getTutorEarningsFn, getWalletBalanceFn,
+    getTutorEarningsFn, getOutstandingBalanceFn, getMonthlyBillsFn,
     getReviewsForTutor, getReviewsForStudent,
     getConversationWith, getConversationPartnersFn,
     setRole, updateSessionStatus, addPayment,
